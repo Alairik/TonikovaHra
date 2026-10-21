@@ -1,0 +1,1229 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#2b3b4e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Toníkova stavba</title>
+<style>
+:root{
+  --bg:#1f2d3d; --ink:#2b2118; --panel:#ffffff; --accent:#ffb400; --ok:#3bb54a; --soft:rgba(255,255,255,.62);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#111a25; --panel:#f4f1ea; } }
+:root[data-theme="dark"]{ --bg:#111a25; --panel:#f4f1ea; }
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);overscroll-behavior:none}
+body{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;color:var(--ink)}
+#stage{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;overflow:hidden;background:#8fd3ff}
+#c{position:absolute;left:0;top:0;width:1280px;height:720px;display:block}
+.hidden{display:none!important}
+button{font:inherit;color:inherit}
+
+/* kulatá tlačítka */
+.rbtn{position:absolute;border:5px solid var(--ink);border-radius:50%;background:#fff;box-shadow:0 6px 0 rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;touch-action:none}
+.rbtn svg{width:58%;height:58%;pointer-events:none}
+.rbtn:active,.rbtn.down{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.28)}
+#home{left:22px;top:20px;width:76px;height:76px}
+#snd{right:22px;top:20px;width:76px;height:76px}
+#snd .x{display:none}
+#snd.off .x{display:block}
+#horn{right:212px;bottom:40px;width:96px;height:96px;background:var(--accent)}
+#act{right:40px;bottom:22px;width:142px;height:142px;background:var(--ok);opacity:.78}
+#act svg{width:64%;height:64%}
+#act.ready{opacity:1;animation:pulse .75s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 6px 0 rgba(0,0,0,.28),0 0 0 0 rgba(255,210,63,.9)}50%{box-shadow:0 6px 0 rgba(0,0,0,.28),0 0 0 22px rgba(255,210,63,0)}}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+
+/* horní lišta postupu */
+#prog{position:absolute;left:50%;top:24px;transform:translateX(-50%);display:flex;align-items:center;gap:8px}
+.seg{width:118px;height:24px;border:4px solid var(--ink);border-radius:14px;background:var(--soft);overflow:hidden}
+.seg .f{height:100%;width:0;background:var(--ok);transition:width .15s}
+.star{width:38px;height:38px;filter:grayscale(1) brightness(1.5);opacity:.75;transition:.3s}
+.star.on{filter:none;opacity:1;transform:scale(1.2)}
+.star svg{width:100%;height:100%}
+
+/* výběr stroje */
+#tray{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:12px}
+.mach{width:116px;height:100px;border-radius:24px;border:5px solid var(--ink);background:rgba(255,255,255,.78);padding:2px;position:relative;cursor:pointer;box-shadow:0 6px 0 rgba(0,0,0,.28);touch-action:none}
+.mach img{width:100%;height:100%;object-fit:contain;pointer-events:none}
+.mach.active{background:#ffe27a;box-shadow:0 0 0 5px #fff,0 6px 0 rgba(0,0,0,.28)}
+.mach.hint{animation:bounce .7s ease-in-out infinite;border-color:#e03a3a}
+.mach b{position:absolute;left:8px;top:2px;font-size:15px;opacity:.55}
+
+/* joystick */
+#joy{position:absolute;left:30px;bottom:10px;width:330px;height:100px;border-radius:50px;background:var(--soft);border:5px solid var(--ink);touch-action:none}
+#joy svg{position:absolute;top:19px;width:50px;height:50px;pointer-events:none}
+#joy .l{left:14px}#joy .r{right:14px}
+#knob{position:absolute;left:calc(50% - 42px);top:calc(50% - 42px);width:84px;height:84px;border-radius:50%;background:var(--accent);border:5px solid var(--ink);box-shadow:0 5px 0 rgba(0,0,0,.28);pointer-events:none}
+
+/* menu */
+#menu{position:absolute;inset:0;background:linear-gradient(#7fcdf5,#dff3ff 70%,#8ed08c 70%);display:flex;flex-direction:column;align-items:center;padding-top:26px}
+#menu h1{margin:0;font-size:58px;letter-spacing:1px;color:#fff;text-shadow:0 4px 0 var(--ink),3px 0 0 var(--ink),-3px 0 0 var(--ink),0 -3px 0 var(--ink)}
+#icons{display:flex;gap:6px;height:78px;margin:2px 0 6px}
+#icons img{height:78px}
+#grid{display:grid;grid-template-columns:repeat(4,286px);gap:18px 20px;margin-top:6px}
+.card{background:#fff;border:5px solid var(--ink);border-radius:26px;padding:6px 6px 8px;cursor:pointer;box-shadow:0 7px 0 rgba(0,0,0,.28);position:relative;text-align:center;font-weight:700;font-size:22px}
+.card:active{transform:translateY(4px);box-shadow:0 3px 0 rgba(0,0,0,.28)}
+.card canvas{width:100%;height:auto;border-radius:16px;display:block;margin-bottom:4px}
+.card .ok{position:absolute;right:-8px;top:-12px;width:46px;height:46px;background:var(--ok);border:4px solid var(--ink);border-radius:50%;display:none;align-items:center;justify-content:center}
+.card.done .ok{display:flex}
+.card .ok svg{width:26px;height:26px}
+
+/* výhra */
+#win{position:absolute;inset:0;background:rgba(20,30,45,.38);display:flex;align-items:center;justify-content:center}
+#win .panel{background:#fff;border:6px solid var(--ink);border-radius:44px;padding:26px 44px 34px;text-align:center;box-shadow:0 10px 0 rgba(0,0,0,.3);animation:pop .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+#win .stars{display:flex;justify-content:center;gap:10px;margin-bottom:14px}
+#win .stars div{width:96px;height:96px;animation:bounce .9s ease-in-out infinite}
+#win .stars div:nth-child(2){animation-delay:.15s;width:120px;height:120px;margin-top:-16px}
+#win .stars div:nth-child(3){animation-delay:.3s}
+#win .row{display:flex;gap:26px;justify-content:center}
+#win .rbtn{position:relative;width:118px;height:118px}
+#win #next{background:var(--ok);width:150px;height:150px;margin-top:-16px}
+
+#rot{display:none;position:fixed;inset:0;background:var(--bg);color:#fff;z-index:9;align-items:center;justify-content:center;flex-direction:column;gap:18px;font-size:22px}
+@media (orientation:portrait){#rot{display:flex}}
+#rot svg{width:140px;height:140px;animation:rot 2.2s ease-in-out infinite}
+@keyframes rot{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c"></canvas>
+
+  <div id="hud" class="hidden">
+    <button id="home" class="rbtn" aria-label="Domů"><svg viewBox="0 0 24 24"><path d="M3 12 12 4l9 8h-3v8h-4v-5h-4v5H6v-8z" fill="#ffb400" stroke="#2b2118" stroke-width="1.8" stroke-linejoin="round"/></svg></button>
+    <button id="snd" class="rbtn" aria-label="Zvuk"><svg viewBox="0 0 24 24"><path d="M4 9h4l6-4v14l-6-4H4z" fill="#2b2118"/><path d="M17 8c2 2 2 6 0 8" stroke="#2b2118" stroke-width="2" fill="none" stroke-linecap="round"/><path class="x" d="M3 3l18 18" stroke="#e03a3a" stroke-width="3" stroke-linecap="round"/></svg></button>
+    <div id="prog"></div>
+    <div id="tray"></div>
+    <div id="joy"><svg class="l" viewBox="0 0 24 24"><path d="M17 4 5 12l12 8z" fill="#2b2118" opacity=".55"/></svg><svg class="r" viewBox="0 0 24 24"><path d="M7 4l12 8-12 8z" fill="#2b2118" opacity=".55"/></svg><div id="knob"></div></div>
+    <button id="horn" class="rbtn" aria-label="Zatroubit"><svg viewBox="0 0 24 24"><path d="M3 9h4l9-5v16l-9-5H3z" fill="#fff" stroke="#2b2118" stroke-width="1.8" stroke-linejoin="round"/><path d="M19 8c1.6 1.2 1.6 6.8 0 8M21.5 5.5c3 3 3 10 0 13" stroke="#2b2118" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg></button>
+    <button id="act" class="rbtn" aria-label="Pracovat"><svg id="gear" viewBox="-12 -12 24 24"></svg></button>
+  </div>
+
+  <div id="menu">
+    <h1>Toníkova stavba</h1>
+    <div id="icons"></div>
+    <div id="grid"></div>
+  </div>
+
+  <div id="win" class="hidden">
+    <div class="panel">
+      <div class="stars"><div class="st"></div><div class="st"></div><div class="st"></div></div>
+      <div class="row">
+        <button id="again" class="rbtn" aria-label="Znovu"><svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 1 0 2.2-5.1" fill="none" stroke="#2b2118" stroke-width="3" stroke-linecap="round"/><path d="M3 4v6h6" fill="none" stroke="#2b2118" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button id="next" class="rbtn" aria-label="Další"><svg viewBox="0 0 24 24"><path d="M5 12h13M12 5l7 7-7 7" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button id="menu2" class="rbtn" aria-label="Menu"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="2" fill="#2b2118"/><rect x="13" y="4" width="7" height="7" rx="2" fill="#2b2118"/><rect x="4" y="13" width="7" height="7" rx="2" fill="#2b2118"/><rect x="13" y="13" width="7" height="7" rx="2" fill="#2b2118"/></svg></button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="rot"><svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3" fill="none" stroke="#fff" stroke-width="1.6"/><circle cx="12" cy="19" r="1" fill="#fff"/></svg><div>Otoč tablet na šířku</div></div>
+
+<script>
+'use strict';
+/* =========================================================================
+   Toníkova stavba – 2D stavěcí hra
+   Jeden soubor, žádné knihovny. Levely jsou jen DATA (viz sekce LEVELY).
+   ========================================================================= */
+
+/* ---------- základní konstanty a pomocné funkce ---------- */
+const W=1280,H=720,GY=555;          // velikost scény a výška země (y)
+const MS=1.2;                        // zvětšení strojů
+const TAU=Math.PI*2,D2R=Math.PI/180;
+const OUT='#2b2118',YEL='#f7b500';
+const $=s=>document.querySelector(s);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+const backOut=t=>{const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2)};
+const hash=n=>{n=Math.sin(n*127.1+311.7)*43758.5453;return n-Math.floor(n)};
+const mod=(a,b)=>((a%b)+b)%b;
+// klíčové snímky: kf(p,[[čas,hodnota],...]) s plynulým přechodem
+function kf(p,k){
+  if(p<=k[0][0])return k[0][1];
+  for(let i=1;i<k.length;i++){
+    if(p<=k[i][0]){const a=k[i-1],b=k[i];return lerp(a[1],b[1],ease((p-a[0])/(b[0]-a[0])));}
+  }
+  return k[k.length-1][1];
+}
+
+/* ---------- zvuky (WebAudio, vše syntetizované) ---------- */
+let AC=null,muted=false;
+try{muted=localStorage.getItem('tonik_muted')==='1'}catch(e){}
+function ac(){
+  if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}
+  if(AC&&AC.state==='suspended')AC.resume();
+  return AC;
+}
+function tone(f,t0,d,type,v,f2){
+  const a=ac();if(!a||muted)return;
+  const o=a.createOscillator(),g=a.createGain(),t=a.currentTime+t0;
+  o.type=type||'sine';o.frequency.setValueAtTime(f,t);
+  if(f2)o.frequency.linearRampToValueAtTime(f2,t+d);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v||.15,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d+.05);
+}
+const sfx={
+  honk(){tone(293,0,.3,'square',.07);tone(370,0,.3,'square',.07)},
+  ding(){[523,659,784,1047].forEach((f,i)=>tone(f,i*.08,.25,'triangle',.16))},
+  pop(){tone(300,0,.12,'sine',.18,700)},
+  no(){tone(200,0,.15,'sawtooth',.08,140)},
+  tick(){tone(660,0,.06,'triangle',.1)},
+  work(d){tone(70,0,d,'sawtooth',.04,55);for(let i=0;i<d*3;i++)tone(120,i*.33,.07,'square',.025)},
+  win(){[523,659,784,659,784,1047,1319].forEach((f,i)=>tone(f,i*.13,.3,'triangle',.2))}
+};
+
+/* ---------- kreslicí pomůcky ---------- */
+function rr(c,x,y,w,h,r){
+  r=Math.max(0,Math.min(r,Math.abs(w)/2,Math.abs(h)/2));
+  c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();
+}
+function box(c,x,y,w,h,f,r){rr(c,x,y,w,h,r==null?6:r);c.fillStyle=f;c.fill();c.stroke()}
+function poly(c,pts,f){c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();c.fillStyle=f;c.fill();c.stroke()}
+function polyPath(c,pts){c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath()}
+function disc(c,x,y,r,f){c.beginPath();c.arc(x,y,r,0,TAU);c.fillStyle=f;c.fill();c.stroke()}
+function limb(c,x1,y1,x2,y2,w,f){
+  const dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy);
+  c.save();c.translate(x1,y1);c.rotate(Math.atan2(dy,dx));
+  rr(c,-w*.3,-w/2,L+w*.6,w,w*.35);c.fillStyle=f;c.fill();c.stroke();c.restore();
+}
+function wheel(c,x,y,r,rot){
+  disc(c,x,y,r,'#3b3b44');disc(c,x,y,r*.5,'#c9ccd3');
+  c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.cos(rot)*r*.45,y+Math.sin(rot)*r*.45);c.stroke();
+}
+function tracks(c,x,y,w,h,rot){
+  box(c,x,y,w,h,'#3b3b44',h/2);
+  const n=Math.max(2,Math.round(w/(h*1.1)));
+  for(let i=0;i<n;i++){
+    const cx=x+h/2+i*(w-h)/(n-1);
+    disc(c,cx,y+h/2,h*.3,'#c9ccd3');
+    c.beginPath();c.moveTo(cx,y+h/2);c.lineTo(cx+Math.cos(rot*1.3+i)*h*.26,y+h/2+Math.sin(rot*1.3+i)*h*.26);c.stroke();
+  }
+}
+function starPts(r1,r2){const a=[];for(let i=0;i<10;i++){const r=i%2?r2:r1,t=-Math.PI/2+i*Math.PI/5;a.push([Math.cos(t)*r,Math.sin(t)*r])}return a}
+const STAR_SVG='<svg viewBox="-1.2 -1.2 2.4 2.4"><path d="'+starPts(1,.46).map((p,i)=>(i?'L':'M')+p[0].toFixed(3)+' '+p[1].toFixed(3)).join('')+'Z" fill="#ffc400" stroke="#2b2118" stroke-width=".14" stroke-linejoin="round"/></svg>';
+
+/* ---------- náklady (co visí na háku / leží na hromadě) ---------- */
+const CARGO={
+  brick:{w:84,h:54,draw(c,x,y){
+    box(c,x-42,y,84,54,'#e8905b',4);c.save();c.lineWidth=2;c.beginPath();
+    c.moveTo(x-42,y+18);c.lineTo(x+42,y+18);c.moveTo(x-42,y+36);c.lineTo(x+42,y+36);
+    c.moveTo(x-14,y);c.lineTo(x-14,y+18);c.moveTo(x+16,y+18);c.lineTo(x+16,y+36);c.moveTo(x-14,y+36);c.lineTo(x-14,y+54);c.stroke();c.restore();}},
+  conc:{w:80,h:62,draw(c,x,y){
+    box(c,x-40,y,80,62,'#aeb4bd',6);box(c,x-26,y+14,52,34,'#c3c8cf',4);}},
+  roof:{w:108,h:52,draw(c,x,y){poly(c,[[x-54,y+52],[x+54,y+52],[x,y]],'#d9534f');}},
+  steel:{w:130,h:30,draw(c,x,y){box(c,x-65,y,130,12,'#7f8c9a',3);box(c,x-65,y+16,130,12,'#7f8c9a',3);}},
+  slab:{w:120,h:40,draw(c,x,y){
+    box(c,x-60,y,120,40,'#e9dcc2',4);c.save();c.lineWidth=2;c.beginPath();
+    for(let i=-2;i<=2;i+=2){c.moveTo(x+i*18,y+6);c.lineTo(x+i*18,y+34)}c.stroke();c.restore();}},
+};
+
+/* =========================================================================
+   STROJE – každý stroj se kreslí v lokálních souřadnicích (0,0 = střed na zemi,
+   kouká doprava). m.anim = právě probíhající práce {kind,p(0..1)}.
+   ========================================================================= */
+function craneKin(m){
+  const a=m.anim,k=a?a.kind:null,p=a?a.p:0;
+  const kind=(a&&a.step.cargo)||m.loaded||'brick',cd=CARGO[kind];
+  const tl=m.tl||[170,0];
+  const idle={x:CR.px+Math.cos(-50*D2R)*135,y:CR.py+Math.sin(-50*D2R)*135};
+  const over={x:tl[0],y:-(tl[1]+cd.h+10+CR.DROP)};
+  let s=0,cable=34,show=!!m.loaded;
+  if(k==='pick'){
+    s=kf(p,[[0,0],[.3,1],[.66,1],[1,0]]);
+    cable=kf(p,[[0,34],[.3,34],[.58,CR.DROP],[.66,CR.DROP],[.86,34],[1,34]]);show=p>=.6;
+  }else if(k==='drop'){
+    s=kf(p,[[0,0],[.3,1],[.7,1],[1,0]]);
+    cable=kf(p,[[0,34],[.3,34],[.6,CR.DROP],[.68,CR.DROP],[.88,34],[1,34]]);show=p<.64;
+  }
+  return{tx:lerp(idle.x,over.x,s),ty:lerp(idle.y,over.y,s),cable,show,kind};
+}
+const CR={px:-14,py:-68,DROP:70};
+
+function drawCrane(c,m){
+  const k=craneKin(m),a=m.anim,p=a?a.p:0;
+  const og=a?Math.max(0,Math.min(1,p/.08,(1-p)/.08)):0;
+  if(og>0){for(const x of[-84,60])box(c,x-6,-30,12,30*og+2,'#555',3)}
+  wheel(c,-74,-18,18,m.rot);wheel(c,-46,-18,18,m.rot);wheel(c,66,-18,18,m.rot);
+  box(c,-100,-40,206,18,'#59606b',4);
+  poly(c,[[48,-40],[48,-92],[82,-92],[102,-62],[102,-40]],'#e0463a');
+  poly(c,[[54,-86],[78,-86],[94,-64],[54,-64]],'#bfe6ff');
+  box(c,-72,-68,76,30,'#e0a500',5);box(c,-100,-64,30,26,'#6b6b73',4);
+  const dx=k.tx-CR.px,dy=k.ty-CR.py,ang=Math.atan2(dy,dx),L=clamp(Math.hypot(dx,dy),110,760);
+  const ex=CR.px+Math.cos(ang)*L,ey=CR.py+Math.sin(ang)*L;
+  c.save();c.translate(CR.px,CR.py);c.rotate(ang);
+  box(c,L*.55,-6,L*.45,12,'#ffd84d',4);box(c,L*.28,-8.5,L*.5,17,'#f5b800',4);box(c,-8,-11,L*.42,22,'#e0a500',5);
+  c.restore();
+  disc(c,CR.px,CR.py,8,'#555');disc(c,ex,ey,5,'#555');
+  c.save();c.lineWidth=3;c.beginPath();c.moveTo(ex,ey);c.lineTo(ex,ey+k.cable);c.stroke();c.restore();
+  disc(c,ex,ey+k.cable+5,6,'#555');
+  if(k.show)CARGO[k.kind].draw(c,ex,ey+k.cable+10);
+}
+
+function drawExcavator(c,m){
+  const a=m.anim,p=a?a.p:0,u=a?.5-.5*Math.cos(Math.min(1,p)*TAU*3):0;
+  const a1=lerp(-48,-18,u)*D2R,a2=lerp(98,66,u)*D2R,a3=(lerp(55,40,u)+34*Math.sin(u*Math.PI))*D2R;
+  tracks(c,-76,-38,152,38,m.rot);
+  const px=26,py=-72,L1=110,L2=86;
+  const bx=px+Math.cos(a1)*L1,by=py+Math.sin(a1)*L1,sx=bx+Math.cos(a1+a2)*L2,sy=by+Math.sin(a1+a2)*L2;
+  limb(c,px,py,bx,by,18,YEL);limb(c,bx,by,sx,sy,14,YEL);
+  c.save();c.translate(sx,sy);c.rotate(a1+a2+a3);poly(c,[[-6,-12],[30,-12],[46,6],[34,24],[-6,24]],'#9aa0aa');c.restore();
+  disc(c,bx,by,6,'#555');disc(c,sx,sy,5,'#555');
+  box(c,-62,-66,104,30,YEL,6);box(c,-78,-62,20,26,'#6b6b73',4);
+  box(c,-16,-110,52,46,YEL,6);box(c,-8,-102,36,28,'#bfe6ff',4);
+  disc(c,px,py,7,'#555');
+}
+
+function drawMixer(c,m){
+  const a=m.anim,p=a?a.p:0,pour=a?kf(p,[[0,0],[.15,1],[.88,1],[1,0]]):0;
+  wheel(c,-66,-18,18,m.rot);wheel(c,-34,-18,18,m.rot);wheel(c,64,-18,18,m.rot);
+  box(c,-92,-40,190,18,'#59606b',4);
+  poly(c,[[44,-40],[44,-88],[80,-88],[98,-60],[98,-40]],'#2f80ed');
+  poly(c,[[50,-82],[76,-82],[90,-62],[50,-62]],'#bfe6ff');
+  const dp=[[-88,-46],[-88,-64],[-72,-90],[-32,-104],[8,-102],[34,-86],[40,-62],[36,-46],[8,-42],[-60,-42]];
+  c.save();polyPath(c,dp);c.fillStyle='#ffd23f';c.fill();c.clip();
+  c.strokeStyle='#f26b3a';c.lineWidth=9;
+  for(let i=-2;i<8;i++){const x=-96+mod(i*34+m.drum*30,272);c.beginPath();c.moveTo(x,-112);c.lineTo(x+34,-36);c.stroke()}
+  c.restore();polyPath(c,dp);c.stroke();
+  if(pour>0){
+    const cl=100*pour,ex=34+Math.cos(.3)*cl,ey=-80+Math.sin(.3)*cl;
+    c.save();c.translate(34,-80);c.rotate(.3);box(c,-4,-7,cl+4,14,'#8c939c',4);c.restore();
+    if(pour>.4){c.fillStyle='#aeb4bd';c.fillRect(ex-6,ey+4,12,-ey-4)}
+  }
+}
+
+function loaderPose(m){
+  const a=m.anim,k=a?a.kind:null,p=a?a.p:0;
+  let arm=-20,bk=-35,sand=m.loaded?1:0;
+  if(k==='pick'){
+    arm=kf(p,[[0,-20],[.3,18],[.55,18],[.85,-20],[1,-20]]);
+    bk=kf(p,[[0,-35],[.3,8],[.55,8],[.8,-35],[1,-35]]);sand=p>.6?1:0;
+  }else if(k==='drop'){
+    arm=kf(p,[[0,-20],[.3,-58],[.72,-58],[1,-20]]);
+    bk=kf(p,[[0,-35],[.3,-35],[.5,62],[.68,62],[.85,-35],[1,-35]]);sand=p<.55?1:0;
+  }
+  return{arm,bk,sand};
+}
+function drawLoader(c,m){
+  const q=loaderPose(m),ar=q.arm*D2R,px=10,py=-76,L=108;
+  const ex=px+Math.cos(ar)*L,ey=py+Math.sin(ar)*L;
+  box(c,-92,-76,184,36,YEL,6);box(c,-104,-92,58,34,'#6b6b73',5);
+  box(c,-46,-126,60,56,YEL,6);box(c,-38,-118,42,36,'#bfe6ff',4);
+  limb(c,px,py,ex,ey,16,'#e0a500');
+  c.save();c.translate(ex,ey);c.rotate((q.arm+q.bk)*D2R);
+  poly(c,[[-6,-14],[40,-14],[54,10],[46,30],[-6,30]],'#9aa0aa');
+  if(q.sand)poly(c,[[-2,-14],[8,-30],[26,-34],[40,-14]],'#f2d680');
+  c.restore();disc(c,ex,ey,6,'#555');
+  wheel(c,-50,-27,27,m.rot);wheel(c,50,-27,27,m.rot);
+}
+
+function drawDump(c,m){
+  const a=m.anim,k=a?a.kind:null,p=a?a.p:0;
+  let tilt=0,load=m.loaded?1:0;
+  if(k==='pick')load=kf(p,[[0,0],[.15,0],[.85,1],[1,1]]);
+  if(k==='drop'){tilt=kf(p,[[0,0],[.3,1],[.8,1],[1,0]]);load=1-kf(p,[[0,0],[.3,0],[.65,1],[1,1]])}
+  wheel(c,-70,-18,18,m.rot);wheel(c,-42,-18,18,m.rot);wheel(c,68,-18,18,m.rot);
+  box(c,-98,-40,200,18,'#59606b',4);
+  poly(c,[[52,-40],[52,-92],[84,-92],[104,-62],[104,-40]],'#f08a24');
+  poly(c,[[58,-86],[80,-86],[96,-64],[58,-64]],'#bfe6ff');
+  c.save();c.translate(-92,-44);c.rotate(-tilt*.62);
+  poly(c,[[0,0],[-4,-50],[92,-58],[112,-44],[112,-4],[100,0]],'#f5a54a');
+  if(load>.02)poly(c,[[6,-4],[4,-6-36*load],[40,-10-42*load],[80,-12-36*load],[108,-8-26*load],[108,-4]],'#9a9a9a');
+  c.restore();
+  if(k==='drop'&&p>.35&&p<.72){c.fillStyle='#9a9a9a';c.fillRect(-122,-34,16,34)}
+}
+
+function drawDozer(c,m){
+  const a=m.anim,p=a?a.p:0,push=a?kf(p,[[0,0],[.12,1],[.88,1],[1,0]]):0,bb=lerp(-26,-2,push);
+  tracks(c,-86,-46,172,46,m.rot);
+  box(c,-64,-86,112,42,YEL,6);box(c,-50,-134,62,52,YEL,6);box(c,-42,-126,44,32,'#bfe6ff',4);box(c,-62,-134,9,50,'#6b6b73',3);
+  limb(c,36,-62,104,bb-32,10,'#555');
+  poly(c,[[102,bb-64],[118,bb-68],[128,bb-4],[112,bb+2]],'#c9ccd3');
+}
+
+function drawPaver(c,m){
+  tracks(c,-72,-34,150,34,m.rot);
+  box(c,-74,-76,150,44,'#ff8a00',6);
+  poly(c,[[72,-42],[72,-100],[126,-116],[126,-42]],'#ffb347');
+  poly(c,[[80,-76],[80,-96],[120,-108],[120,-76]],'#2e3238');
+  box(c,-124,-30,50,18,'#6b6b73',4);limb(c,-76,-58,-102,-26,8,'#555');
+  box(c,-26,-102,26,26,'#444',4);
+  c.save();c.lineWidth=5;c.beginPath();c.moveTo(-30,-102);c.lineTo(-30,-138);c.moveTo(22,-102);c.lineTo(22,-138);c.stroke();c.restore();
+  box(c,-42,-148,78,12,'#e03a3a',5);
+}
+
+function drawRoller(c,m){
+  box(c,-78,-90,142,46,'#ffcc00',8);
+  disc(c,-52,-32,32,'#3b3b44');disc(c,-52,-32,14,'#c9ccd3');
+  disc(c,50,-38,38,'#b9bec7');
+  c.save();c.lineWidth=3;for(let i=0;i<6;i++){const t=m.rot*1.2+i*Math.PI/3;c.beginPath();c.moveTo(50,-38);c.lineTo(50+Math.cos(t)*30,-38+Math.sin(t)*30);c.stroke()}c.restore();
+  disc(c,50,-38,10,'#555');
+  box(c,-30,-122,28,34,'#444',4);
+  c.save();c.lineWidth=5;c.beginPath();c.moveTo(-34,-90);c.lineTo(-34,-142);c.moveTo(14,-90);c.lineTo(14,-142);c.stroke();c.restore();
+  box(c,-46,-152,72,12,'#e03a3a',5);
+}
+
+/* tabulka strojů: rychlost, trvání práce (s), v kolika % práce se objeví „popnutý“ díl */
+const MACH={
+  excavator:{n:'Bagr',speed:190,draw:drawExcavator,dur:{work:3.4}},
+  mixer:{n:'Míchačka',speed:280,draw:drawMixer,dur:{work:3.2}},
+  crane:{n:'Jeřáb',speed:250,draw:drawCrane,popAt:.64,dur:{pick:2.8,drop:3.2}},
+  dump:{n:'Sklápěč',speed:290,draw:drawDump,popAt:.55,dur:{pick:2.6,drop:3.0}},
+  bulldozer:{n:'Buldozer',speed:220,draw:drawDozer,popAt:.85,dur:{work:3.2}},
+  loader:{n:'Nakladač',speed:270,draw:drawLoader,popAt:.5,dur:{pick:2.6,drop:3.0}},
+  paver:{n:'Finišer',speed:200,work:.65,rear:134,draw:drawPaver},
+  roller:{n:'Válec',speed:210,work:.7,rear:101,draw:drawRoller},
+};
+function newMachine(type,x){return{type,x,dir:1,vx:0,rot:0,drum:0,anim:null,loaded:null,shake:0,bounce:0,jx:0,tl:null,fxT:0,park:null}}
+function drawMachine(c,m,scale,lw){
+  scale=scale||MS;
+  const sh=m.shake>0?Math.sin(m.shake*50)*7*m.shake:0;
+  c.save();c.translate(m.x+(m.jx||0)+sh,GY-(m.bounce||0));c.scale(m.dir*scale,scale);
+  c.lineWidth=lw||3.4;c.strokeStyle=OUT;c.lineJoin='round';c.lineCap='round';
+  MACH[m.type].draw(c,m);c.restore();
+}
+/* ikonky strojů (pro lištu dole a bubliny) */
+const ICON={};
+function makeIcons(){
+  for(const t in MACH){
+    const cv=document.createElement('canvas');cv.width=272;cv.height=200;
+    const c=cv.getContext('2d');c.scale(2,2);
+    const m=newMachine(t,0);m.dir=1;
+    c.translate(50,92);c.scale(.42,.42);c.lineWidth=6;c.strokeStyle=OUT;c.lineJoin='round';c.lineCap='round';
+    MACH[t].draw(c,m);
+    ICON[t]=cv;
+  }
+}
+
+/* =========================================================================
+   LEVELY – jen data. Souřadnice: x = svět (px), y = výška NAD zemí (nahoru).
+   R(x,y,š,v,barva) obdélník, P([[x,y],..],barva) mnohoúhelník, O(x,y,r,barva) kruh.
+   Díl (part): mode 'pop' (vyskočí), 'up' (roste zespoda), 'right' (roste zleva), 'fade'.
+   Krok (step):  k:'work' (stroj stojí v zóně a zmáčkne tlačítko),
+                 k:'carry' (nabrat na hromadě + složit na místě),
+                 k:'drive' (projet úsek – finišer/válec).
+   ========================================================================= */
+const R=(x,y,w,h,c,d)=>({t:'r',x,y,w,h,c,d});
+const P=(pts,c,d)=>({t:'p',pts,c,d});
+const O=(x,y,r,c,d)=>({t:'c',x,y,r,c,d});
+const win=(x,y,n,gap,w,h,c)=>Array.from({length:n},(_,i)=>R(x+i*(w+gap),y,w,h,c||'#bfe6ff',1));
+const dashes=(x,y,n,step,w,h,c)=>Array.from({length:n},(_,i)=>R(x+i*step,y,w,h,c||'#fff',1));
+const car=(x,y,col)=>[R(x,y+12,86,22,col),R(x+18,y+32,48,20,col),R(x+24,y+34,16,14,'#bfe6ff',1),R(x+44,y+34,16,14,'#bfe6ff',1),O(x+20,y+10,10,'#333'),O(x+66,y+10,10,'#333')];
+const palm=(x)=>[R(x,0,10,90,'#8a5a3a'),P([[x+5,92],[x-40,70],[x-34,82],[x+5,100]],'#3fae49'),P([[x+5,92],[x+50,70],[x+44,82],[x+5,100]],'#3fae49'),P([[x+5,96],[x-20,125],[x+5,112]],'#3fae49'),P([[x+5,96],[x+30,125],[x+5,112]],'#3fae49')];
+const umbrella=(x,col)=>[R(x,0,5,70,'#8a5a3a'),P([[x-40,68],[x+45,68],[x+2,102]],col)];
+const tree=(x)=>[R(x,0,14,60,'#8a5a3a'),O(x+7,86,36,'#4caf50'),O(x-18,70,26,'#43a047'),O(x+32,70,26,'#43a047')];
+const lamp=(x)=>[R(x,0,6,150,'#555'),R(x,144,40,8,'#555'),O(x+36,138,9,'#ffe066')];
+
+const LEVELS=[
+/* 1 ─ DŮM */
+{id:'dum',name:'Dům',lw:2400,maxX:2250,machines:['excavator','mixer','crane'],thumb:{cx:1560,zoom:1.9},bg:'hills',
+ sky:['#79c7f2','#dff3ff'],
+ pits:[{x0:1380,x1:1620,depth:50}],
+ parts:[
+  {mode:'up',shapes:[P([[1650,0],[1700,38],[1745,58],[1795,40],[1840,0]],'#8b5a2b')]},
+  {mode:'pop',shapes:[R(1400,0,110,110,'#f6c177'),R(1432,52,46,40,'#bfe6ff',1)]},
+  {mode:'pop',shapes:[R(1510,0,110,110,'#f6c177'),R(1546,0,38,72,'#8a5a3a',1),O(1574,34,3.5,'#ffd23f',1)]},
+  {mode:'pop',shapes:[R(1566,140,34,70,'#a05a46'),P([[1380,110],[1640,110],[1510,208]],'#d9534f')]},
+  {fin:1,mode:'pop',shapes:[R(1507,205,5,62,'#555'),P([[1512,266],[1512,242],[1552,254]],'#e03a3a')]},
+  {fin:1,mode:'pop',shapes:tree(1930)},
+ ],
+ steps:[
+  {k:'work',m:'excavator',x:1290,fx:{pit:0,dig:1},parts:[0],ph:0},
+  {k:'work',m:'mixer',x:1290,fx:{pit:0,fill:1},ph:0},
+  {k:'carry',m:'crane',cargo:'brick',src:{x:850},x:1250,parts:[1],ph:1},
+  {k:'carry',m:'crane',cargo:'brick',src:{x:850},x:1250,parts:[2],ph:1},
+  {k:'carry',m:'crane',cargo:'roof',src:{x:1010},x:1250,parts:[3],ph:2},
+ ]},
+
+/* 2 ─ HŘIŠTĚ */
+{id:'hriste',name:'Hřiště',lw:3100,maxX:2950,machines:['bulldozer','loader','crane'],thumb:{cx:2330,zoom:1.3},bg:'hills',
+ sky:['#79c7f2','#dff3ff'],
+ mounds:[{x0:1300,x1:1700,h:80}],
+ parts:[
+  {mode:'pop',at:.85,shapes:[R(1800,0,230,30,'#c98a4b'),R(1812,8,206,22,'#8e6234',1)]},
+  {mode:'up',at:.4,end:.85,shapes:[P([[1812,8],[1812,22],[1860,30],[1915,36],[1970,30],[2018,22],[2018,8]],'#f2d680')]},
+  {mode:'pop',shapes:[R(2250,0,14,140,'#4aa3df'),R(2312,0,14,140,'#4aa3df'),R(2240,128,96,14,'#ffd23f'),R(2240,142,6,40,'#4aa3df'),R(2330,142,6,40,'#4aa3df'),P([[2336,136],[2342,150],[2552,12],[2552,0],[2530,0]],'#e8473a')]},
+  {mode:'pop',shapes:[R(2650,0,14,130,'#c0392b'),R(2800,0,14,130,'#c0392b'),R(2640,124,184,14,'#c0392b'),R(2700,48,3,78,'#333',1),R(2750,48,3,78,'#333',1),R(2692,40,70,10,'#ffd23f'),R(2742,40,70,10,'#ffd23f')]},
+  {fin:1,mode:'pop',shapes:tree(2020)},
+  {fin:1,mode:'pop',shapes:tree(2580)},
+  {fin:1,mode:'pop',shapes:[R(2900,0,5,80,'#555'),O(2902,100,22,'#ff5a5f'),O(2930,116,20,'#4aa3df'),O(2876,118,20,'#ffd23f')]},
+ ],
+ steps:[
+  {k:'work',m:'bulldozer',x:1180,fx:{mound:0},parts:[0],ph:0},
+  {k:'carry',m:'loader',cargo:'sand',src:{x:700,kind:'sand'},x:1725,to:[1915,16],parts:[1],ph:1},
+  {k:'carry',m:'crane',cargo:'steel',src:{x:2130},x:2200,parts:[2],ph:2},
+  {k:'carry',m:'crane',cargo:'steel',src:{x:2130},x:2490,parts:[3],ph:2},
+ ]},
+
+/* 3 ─ DÁLNICE */
+{id:'dalnice',name:'Dálnice',lw:2800,maxX:2620,machines:['bulldozer','dump','paver','roller'],thumb:{cx:1700,zoom:1.05},bg:'hills',
+ sky:['#79c7f2','#dff3ff'],
+ mounds:[{x0:1200,x1:1540,h:62}],
+ parts:[
+  {mode:'pop',at:.55,shapes:[R(1100,-18,600,18,'#a8a29a'),...dashes(1120,-12,15,38,18,5,'#8b857d')]},
+  {mode:'pop',at:.55,shapes:[R(1700,-18,600,18,'#a8a29a'),...dashes(1720,-12,15,38,18,5,'#8b857d')]},
+  {mode:'right',shapes:[R(1100,-18,1200,20,'#33373d')]},
+  {mode:'right',shapes:[...dashes(1130,-9,17,70,34,5,'#fff'),R(1100,0,1200,3,'#ffd23f',1)]},
+  {fin:1,mode:'pop',shapes:lamp(1250)},{fin:1,mode:'pop',shapes:lamp(1650)},{fin:1,mode:'pop',shapes:lamp(2050)},{fin:1,mode:'pop',shapes:lamp(2250)},
+ ],
+ steps:[
+  {k:'work',m:'bulldozer',x:1100,fx:{mound:0},ph:0},
+  {k:'carry',m:'dump',cargo:'gravel',src:{x:960,kind:'gravel'},x:1530,to:[1400,0],parts:[0],ph:1},
+  {k:'carry',m:'dump',cargo:'gravel',src:{x:1880,kind:'gravel'},x:2130,to:[2000,0],parts:[1],ph:1},
+  {k:'drive',m:'paver',x0:1100,x1:2300,parts:[2],ph:2},
+  {k:'drive',m:'roller',x0:1100,x1:2300,parts:[3],ph:3},
+ ],
+ finale:(c,S)=>carsFinale(c,S,1100,2300,0,[['#e03a3a',160],['#2f80ed',230],['#ffd23f',120]])},
+
+/* 4 ─ MOST */
+{id:'most',name:'Most',lw:2800,maxX:2650,machines:['excavator','mixer','crane'],thumb:{cx:1800,zoom:1.15},bg:'hills',
+ sky:['#79c7f2','#dff3ff'],
+ pits:[{x0:1450,x1:1650,depth:60},{x0:1950,x1:2150,depth:60}],
+ parts:[
+  {mode:'up',shapes:[P([[1670,0],[1710,40],[1745,52],[1790,38],[1830,0]],'#8b5a2b')]},
+  {mode:'pop',shapes:[R(1510,0,80,165,'#b4aea3'),R(1488,150,124,26,'#a39d91')]},
+  {mode:'up',shapes:[P([[2170,0],[2210,40],[2245,52],[2290,38],[2330,0]],'#8b5a2b')]},
+  {mode:'pop',shapes:[R(2010,0,80,165,'#b4aea3'),R(1988,150,124,26,'#a39d91')]},
+  {mode:'pop',shapes:[P([[1160,0],[1420,176],[1420,0]],'#9b7b54'),P([[2180,176],[2440,0],[2180,0]],'#9b7b54'),R(1420,176,760,30,'#8d96a3'),R(1420,206,760,6,'#6b7280',1),...Array.from({length:10},(_,i)=>R(1420+i*84,206,6,30,'#6b7280',1))]},
+  {fin:1,mode:'pop',shapes:car(1500,206,'#e03a3a')},{fin:1,mode:'pop',shapes:car(1900,206,'#2f80ed')},
+ ],
+ steps:[
+  {k:'work',m:'excavator',x:1350,fx:{pit:0,dig:1},parts:[0],ph:0},
+  {k:'work',m:'mixer',x:1350,fx:{pit:0,fill:1},ph:0},
+  {k:'carry',m:'crane',cargo:'conc',src:{x:1000},x:1340,to:[1550,0],parts:[1],ph:0},
+  {k:'work',m:'excavator',x:1850,fx:{pit:1,dig:1},parts:[2],ph:1},
+  {k:'work',m:'mixer',x:1850,fx:{pit:1,fill:1},ph:1},
+  {k:'carry',m:'crane',cargo:'conc',src:{x:1700},x:1850,to:[2050,0],parts:[3],ph:1},
+  {k:'carry',m:'crane',cargo:'steel',src:{x:1790,kind:'steel'},x:1700,to:[1800,176],parts:[4],ph:2},
+ ]},
+
+/* 5 ─ AQUAPARK */
+{id:'aqua',name:'Aquapark',lw:2650,maxX:2500,machines:['excavator','mixer','crane','loader'],thumb:{cx:1750,zoom:1.3},bg:'hills',
+ sky:['#6ec9ff','#e4f6ff'],
+ pits:[{x0:1950,x1:2350,depth:75,water:true,fillTo:.3}],
+ parts:[
+  {mode:'up',shapes:[P([[2380,0],[2420,40],[2455,52],[2500,38],[2540,0]],'#8b5a2b')]},
+  {mode:'pop',shapes:[R(1560,0,16,230,'#4aa3df'),R(1650,0,16,230,'#4aa3df'),R(1550,214,126,16,'#ffd23f'),R(1550,230,6,44,'#4aa3df'),R(1670,230,6,44,'#4aa3df'),...Array.from({length:6},(_,i)=>R(1576,28+i*32,74,6,'#ffd23f',1))]},
+  {mode:'pop',shapes:[R(1810,0,10,165,'#4aa3df',1),P([[1668,222],[1700,236],[1800,196],[1890,124],[1970,62],[2040,48],[2040,22],[1970,34],[1890,92],[1800,162],[1700,198],[1668,200]],'#ff6b6b')]},
+  {mode:'up',shapes:[P([[880,0],[880,14],[960,22],[1040,28],[1120,22],[1180,14],[1180,0]],'#f2d680')]},
+  {fin:1,mode:'pop',shapes:umbrella(940,'#e03a3a')},{fin:1,mode:'pop',shapes:umbrella(1090,'#2f80ed')},{fin:1,mode:'pop',shapes:palm(1220)},{fin:1,mode:'pop',shapes:palm(840)},
+ ],
+ steps:[
+  {k:'work',m:'excavator',x:1850,fx:{pit:0,dig:1},parts:[0],ph:0},
+  {k:'work',m:'mixer',x:1850,fx:{pit:0,fill:1},ph:0},
+  {k:'carry',m:'crane',cargo:'steel',src:{x:1250},x:1420,to:[1610,0],parts:[1],ph:1},
+  {k:'carry',m:'crane',cargo:'steel',src:{x:1250},x:1650,to:[1830,140],parts:[2],ph:1},
+  {k:'carry',m:'loader',cargo:'sand',src:{x:520,kind:'sand'},x:840,to:[1030,16],parts:[3],ph:2},
+ ]},
+
+/* 6 ─ OBCHODNÍ DŮM */
+{id:'mall',name:'Obchodní dům',lw:2500,maxX:2350,machines:['excavator','mixer','crane'],thumb:{cx:1750,zoom:1.6},bg:'city',
+ sky:['#8ccdf0','#e8f5ff'],
+ pits:[{x0:1550,x1:1950,depth:55}],
+ parts:[
+  {mode:'up',shapes:[P([[1980,0],[2030,36],[2070,52],[2120,36],[2160,0]],'#8b5a2b')]},
+  {mode:'pop',shapes:[R(1520,0,460,110,'#e9dcc2'),...win(1535,44,3,18,44,44),R(1715,0,70,84,'#bfe6ff',1),...win(1805,44,3,18,44,44),R(1700,84,100,12,'#e03a3a',1)]},
+  {mode:'pop',shapes:[R(1520,110,460,100,'#d9c7a0'),...win(1545,138,8,12,40,44)]},
+  {mode:'pop',shapes:[R(1500,210,500,20,'#8b6f47'),R(1690,230,180,76,'#e03a3a'),O(1750,248,8,'#fff',1),O(1800,248,8,'#fff',1),R(1738,262,76,30,'#fff',1),P([[1738,292],[1730,306],[1748,292]],'#fff',1)]},
+  {fin:1,mode:'pop',shapes:[R(1490,230,5,70,'#555'),P([[1495,298],[1495,274],[1530,286]],'#2f80ed')]},
+  {fin:1,mode:'pop',shapes:[R(2005,230,5,70,'#555'),P([[2010,298],[2010,274],[2045,286]],'#ffd23f')]},
+  {fin:1,mode:'pop',shapes:tree(2190)},{fin:1,mode:'pop',shapes:tree(1400)},
+ ],
+ steps:[
+  {k:'work',m:'excavator',x:1450,fx:{pit:0,dig:1},parts:[0],ph:0},
+  {k:'work',m:'mixer',x:1450,fx:{pit:0,fill:1},ph:0},
+  {k:'carry',m:'crane',cargo:'slab',src:{x:900},x:1380,to:[1750,0],parts:[1],ph:1},
+  {k:'carry',m:'crane',cargo:'slab',src:{x:900},x:1380,to:[1750,110],parts:[2],ph:1},
+  {k:'carry',m:'crane',cargo:'steel',src:{x:1060},x:1380,to:[1780,210],parts:[3],ph:2},
+ ]},
+
+/* 7 ─ LETIŠTĚ */
+{id:'letiste',name:'Letiště',lw:3000,maxX:2850,machines:['bulldozer','paver','roller','crane'],thumb:{cx:1290,zoom:1.25},bg:'city',
+ sky:['#7fd0ff','#e6f6ff'],
+ mounds:[{x0:1450,x1:1780,h:65}],
+ parts:[
+  {mode:'right',shapes:[R(1400,-18,1200,20,'#3a3e45')]},
+  {mode:'right',shapes:[...dashes(1500,-9,12,96,52,5,'#fff'),...dashes(1412,-16,5,14,8,14,'#fff'),...dashes(2572,-16,2,14,8,14,'#fff')]},
+  {mode:'pop',shapes:[R(850,0,70,175,'#cfd5dd'),R(850,40,70,10,'#e03a3a',1),R(850,100,70,10,'#e03a3a',1)]},
+  {mode:'pop',shapes:[R(820,175,130,56,'#bfe6ff'),R(810,231,150,16,'#e03a3a'),R(880,247,8,56,'#555'),O(884,306,7,'#e03a3a')]},
+  {mode:'pop',shapes:[R(1010,0,290,84,'#e9dcc2'),...win(1030,30,6,12,36,34),R(1000,84,310,14,'#7d8590')]},
+  {fin:1,mode:'pop',shapes:[R(1330,0,5,60,'#555'),P([[1335,60],[1335,40],[1362,50]],'#ffd23f')]},
+ ],
+ steps:[
+  {k:'work',m:'bulldozer',x:1350,fx:{mound:0},ph:0},
+  {k:'drive',m:'paver',x0:1400,x1:2600,parts:[0],ph:0},
+  {k:'drive',m:'roller',x0:1400,x1:2600,parts:[1],ph:0},
+  {k:'carry',m:'crane',cargo:'conc',src:{x:620},x:700,to:[885,0],parts:[2],ph:1},
+  {k:'carry',m:'crane',cargo:'slab',src:{x:620},x:700,to:[885,175],parts:[3],ph:1},
+  {k:'carry',m:'crane',cargo:'slab',src:{x:620},x:950,to:[1155,0],parts:[4],ph:2},
+ ],
+ finale:(c,S)=>planeFinale(c,S)},
+
+/* 8 ─ MRAKODRAP */
+{id:'mrakodrap',name:'Mrakodrap',lw:2500,maxX:2350,machines:['excavator','mixer','crane'],thumb:{cx:1620,zoom:1.12},bg:'city',
+ sky:['#6fc3f0','#dff3ff'],
+ pits:[{x0:1450,x1:1790,depth:75}],
+ parts:[
+  {mode:'up',shapes:[P([[1810,0],[1860,40],[1900,56],[1950,40],[1990,0]],'#8b5a2b')]},
+  ...[0,1,2,3].map(i=>({mode:'pop',shapes:[R(1480,85*i,280,85,i%2?'#7d95ad':'#8fa6bd'),...win(1506,85*i+20,5,12,36,40,'#d6ecff')]})),
+  {mode:'pop',shapes:[P([[1480,340],[1760,340],[1730,396],[1510,396]],'#6c7a89'),R(1612,396,16,80,'#c9ccd3'),O(1620,484,8,'#e03a3a')]},
+  {fin:1,mode:'fade',shapes:[0,1,2,3].flatMap(i=>[...win(1506,85*i+20,5,12,36,40,'#ffe27a')])},
+  {fin:1,mode:'pop',shapes:tree(1900)},{fin:1,mode:'pop',shapes:tree(1360)},
+ ],
+ steps:[
+  {k:'work',m:'excavator',x:1350,fx:{pit:0,dig:1},parts:[0],ph:0},
+  {k:'work',m:'mixer',x:1350,fx:{pit:0,fill:1},ph:0},
+  {k:'carry',m:'crane',cargo:'slab',src:{x:860},x:1330,to:[1620,0],parts:[1],ph:1},
+  {k:'carry',m:'crane',cargo:'slab',src:{x:860},x:1330,to:[1620,85],parts:[2],ph:1},
+  {k:'carry',m:'crane',cargo:'slab',src:{x:860},x:1330,to:[1620,170],parts:[3],ph:2},
+  {k:'carry',m:'crane',cargo:'slab',src:{x:860},x:1330,to:[1620,255],parts:[4],ph:2},
+  {k:'carry',m:'crane',cargo:'roof',src:{x:1010,kind:'roof'},x:1330,to:[1620,340],parts:[5],ph:3},
+ ]},
+];
+
+/* ---------- příprava levelů (obdélníky dílů apod.) ---------- */
+function bboxOf(shapes){
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  const add=(x,y)=>{x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y)};
+  for(const s of shapes){
+    if(s.t==='r'){add(s.x,s.y);add(s.x+s.w,s.y+s.h)}
+    else if(s.t==='p'){s.pts.forEach(q=>add(q[0],q[1]))}
+    else{add(s.x-s.r,s.y-s.r);add(s.x+s.r,s.y+s.r)}
+  }
+  return{x0,x1,y0,y1};
+}
+LEVELS.forEach(L=>{
+  L.parts.forEach(p=>{p.bb=bboxOf(p.shapes)});
+  L.steps.forEach(s=>{if(s.m&&!L.machines.includes(s.m))console.warn('stroj chybí v levelu',L.id,s.m)});
+});
+/* rozbalení kroků: „carry“ = nabrání + složení */
+function expandSteps(L){
+  const out=[];
+  L.steps.forEach(s=>{
+    const w=s.w||220;
+    if(s.k==='carry'){
+      const M=s.m,sx=s.src.x,kind=s.src.kind||s.cargo;
+      let px=sx-170,ty=0;
+      if(M==='dump')px=sx-62;
+      else if(M==='loader'){px=sx-160;ty=10}
+      out.push({k:'pick',m:M,x:px,w,tx:sx,ty,cargo:s.cargo,ph:s.ph,src:{x:sx,kind},p:0});
+      let to=s.to;
+      if(!to){const bb=L.parts[s.parts[0]].bb;to=[(bb.x0+bb.x1)/2,bb.y0]}
+      out.push({k:'drop',m:M,x:s.x,w,tx:to[0],ty:to[1],cargo:s.cargo,parts:s.parts,fx:s.fx,ph:s.ph,p:0});
+    }else out.push(Object.assign({},s,{w,p:0,prog:0}));
+  });
+  return out;
+}
+
+/* ---------- závěrečné oslavy ---------- */
+function carMini(c,x,y,col){
+  c.save();c.translate(x,y);c.lineWidth=3;c.strokeStyle=OUT;
+  box(c,-43,-34,86,22,col,8);box(c,-25,-52,50,22,col,8);box(c,-19,-48,16,14,'#bfe6ff',3);box(c,3,-48,16,14,'#bfe6ff',3);
+  disc(c,-24,-10,10,'#333');disc(c,24,-10,10,'#333');c.restore();
+}
+function carsFinale(c,S,x0,x1,yUp,list){
+  if(S.winT<.8)return;
+  const t=S.winT-.8,len=x1-x0+200;
+  list.forEach(([col,sp],i)=>{const x=x0-100+mod(t*sp+i*420,len);carMini(c,x,GY-yUp-18+(i%2)*0,col)});
+}
+function planeFinale(c,S){
+  const t=Math.min(S.winT,7);
+  const x=800+t*320,fl=Math.max(0,1-t/3.4);
+  const y=GY-34-380*fl*fl;
+  c.save();c.translate(x,y);c.rotate(-.12*fl);c.lineWidth=3.5;c.strokeStyle=OUT;
+  c.beginPath();c.ellipse(0,0,78,20,0,0,TAU);c.fillStyle='#fff';c.fill();c.stroke();
+  poly(c,[[-60,-6],[-92,-44],[-72,-44],[-34,-6]],'#e03a3a');
+  poly(c,[[-14,4],[-48,40],[-24,40],[28,4]],'#cfd5dd');
+  poly(c,[[10,-6],[-14,-34],[8,-34],[36,-6]],'#e9edf2');
+  for(let i=0;i<5;i++)disc(c,20+i*10,-4,3.5,'#2f80ed');
+  c.restore();
+}
+
+/* =========================================================================
+   STAV HRY
+   ========================================================================= */
+let S=null,levelIdx=0,running=false;
+const done=new Set();
+try{JSON.parse(localStorage.getItem('tonik_done')||'[]').forEach(x=>done.add(x))}catch(e){}
+function saveDone(){try{localStorage.setItem('tonik_done',JSON.stringify([...done]))}catch(e){}}
+
+function makeState(L,final){
+  const st={L,t:0,si:0,busy:false,win:false,winT:0,fx:[],cam:0,active:0,final:!!final,lastConf:0,trayKey:''};
+  st.pits=(L.pits||[]).map(def=>({def,dig:final?1:0,fill:final?(def.water?def.fillTo:1):0,water:final&&def.water?1:0}));
+  st.mounds=(L.mounds||[]).map(def=>({def,lvl:final?1:0}));
+  st.parts=L.parts.map(def=>({def,bb:def.bb,prog:final?1:0,popT:final?9:-1,delay:0}));
+  st.steps=expandSteps(L);
+  st.machines=L.machines.map((t,i)=>newMachine(t,150+i*300));
+  st.piles=[];
+  st.steps.forEach(s=>{if(s.k==='pick'&&!st.piles.some(p=>p.x===s.src.x&&p.kind===s.src.kind))st.piles.push(s.src)});
+  st.nph=Math.max(...st.steps.map(s=>s.ph))+1;
+  if(!final){const need=st.steps[0].m;st.active=Math.max(0,L.machines.indexOf(need))}
+  st.cam=clamp(st.machines[st.active].x-W/2,0,L.lw-W);
+  return st;
+}
+
+/* ---------- terén (kopání a hromady) ---------- */
+function pitProfile(p,x){
+  const d=p.def,D=d.depth*p.dig;
+  if(D<=0||x<=d.x0||x>=d.x1)return 0;
+  const sl=Math.min(46,(d.x1-d.x0)/3);
+  if(x<d.x0+sl)return D*((x-d.x0)/sl);
+  if(x>d.x1-sl)return D*((d.x1-x)/sl);
+  return D;
+}
+function terrainY(st,x){
+  let off=0;
+  for(const m of st.mounds){const d=m.def;if(x>d.x0&&x<d.x1){const u=(x-d.x0)/(d.x1-d.x0);off+=d.h*(1-m.lvl)*Math.pow(Math.sin(Math.PI*u),.8)}}
+  for(const p of st.pits)off-=pitProfile(p,x);
+  return GY-off;
+}
+function limitX(){
+  let lim=S.L.maxX;
+  for(const p of S.pits)if(p.dig>0&&(p.fill<.999||p.def.water))lim=Math.min(lim,p.def.x0-70);
+  for(const m of S.mounds)if(m.lvl<.999)lim=Math.min(lim,m.def.x0-60);
+  return lim;
+}
+
+/* ---------- částice ---------- */
+function puff(x,y,n,col,spread){
+  for(let i=0;i<n;i++)S.fx.push({type:'dust',x:x+(Math.random()-.5)*(spread||30),y,vx:(Math.random()-.5)*90,vy:-30-Math.random()*70,g:60,life:.7+Math.random()*.4,max:1.1,size:5+Math.random()*7,col,rot:0,vr:0});
+}
+function burst(x,y,n){
+  const cols=['#ffd23f','#ff6b6b','#4aa3df','#3bb54a','#fff'];
+  for(let i=0;i<n;i++){const a=Math.random()*TAU,v=120+Math.random()*260;
+    S.fx.push({type:Math.random()<.45?'star':'conf',x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-120,g:380,life:1.1+Math.random()*.8,max:1.9,size:7+Math.random()*7,col:cols[i%5],rot:Math.random()*TAU,vr:(Math.random()-.5)*10})}
+}
+
+/* ---------- postup úkolů ---------- */
+function applyFx(s,p){
+  s.p=p;
+  const f=s.fx;
+  if(f){
+    if(f.pit!=null){
+      const pt=S.pits[f.pit];
+      if(f.dig)pt.dig=ease(p);
+      if(f.fill){const d=pt.def;if(d.water){pt.fill=clamp(p/.5,0,1)*d.fillTo;pt.water=clamp((p-.5)/.5,0,1)}else pt.fill=p}
+    }
+    if(f.mound!=null)S.mounds[f.mound].lvl=ease(p);
+  }
+  (s.parts||[]).forEach(i=>{
+    const P=S.parts[i],d=P.def;
+    if(d.mode==='up'||d.mode==='right'){const a=d.at==null?0:d.at,b=d.end==null?1:d.end;P.prog=clamp((p-a)/(b-a),0,1)}
+    else{const a=d.at==null?(MACH[s.m].popAt||.5):d.at;if(p>=a&&P.popT<0)startPop(P)}
+  });
+}
+function startPop(P){P.popT=0;puff((P.bb.x0+P.bb.x1)/2,GY-P.bb.y0-4,10,'#e8e2d6',Math.min(220,P.bb.x1-P.bb.x0));sfx.pop()}
+function zoneX(s){return s.k==='drive'?s.x0:s.x}
+function completeStep(s){
+  applyFx(s,1);
+  const z=zoneX(s);
+  burst(z,GY-120,26);sfx.ding();
+  S.si++;
+  const nx=S.steps[S.si];
+  if(nx&&nx.m!==s.m){const m=S.machines.find(q=>q.type===s.m);if(m)m.park=Math.max(90,m.x-300)}
+  if(S.si>=S.steps.length)winGame();
+}
+function startStep(m,s){
+  S.busy=true;m.vx=0;
+  const dur=(MACH[m.type].dur||{})[s.k==='drop'||s.k==='pick'?s.k:'work']||3;
+  let dir=1;
+  if(s.tx!==undefined)dir=(m.type==='dump'&&s.k==='drop')?(s.tx<s.x?1:-1):(s.tx>=s.x?1:-1);
+  m.dir=dir;
+  m.tl=[(s.tx==null?170:(s.tx-s.x))*dir/MS,(s.ty||0)/MS];
+  m.anim={kind:s.k==='work'?'work':s.k,p:0,dur,step:s,x0:m.x};
+  m.fxT=0;
+  sfx.work(dur);
+}
+function tryAction(){
+  if(!S||S.busy||S.win||!running)return;
+  ac();
+  const s=S.steps[S.si],m=S.machines[S.active];
+  if(!s||s.k==='drive'){m.shake=.4;sfx.no();return}
+  const ok=m.type===s.m&&Math.abs(m.x-s.x)<=s.w/2;
+  if(!ok){m.shake=.5;sfx.no();return}
+  startStep(m,s);
+}
+function honk(){ac();sfx.honk();const m=S&&S.machines[S.active];if(m)m.bounce=8}
+function winGame(){
+  S.win=true;S.winT=0;sfx.win();
+  done.add(S.L.id);saveDone();
+  let k=0;S.parts.forEach(P=>{if(P.def.fin){P.delay=.5+k*.35;k++}});
+  setTimeout(()=>{if(S&&S.win&&running)showWin()},2300);
+}
+
+/* ---------- vstup (klávesnice + dotyk) ---------- */
+const keys=new Set();let joyX=0;
+function axis(){
+  let a=joyX;
+  if(keys.has('ArrowLeft')||keys.has('KeyA'))a-=1;
+  if(keys.has('ArrowRight')||keys.has('KeyD'))a+=1;
+  return clamp(a,-1,1);
+}
+addEventListener('keydown',e=>{
+  if(e.repeat){if(e.code.startsWith('Arrow')||e.code==='Space')e.preventDefault();return}
+  keys.add(e.code);ac();
+  if(!running)return;
+  if(e.code==='Space'||e.code==='Enter'||e.code==='ArrowDown'||e.code==='KeyS'){tryAction();e.preventDefault()}
+  else if(e.code==='ArrowUp'||e.code==='KeyW'||e.code==='KeyH'){honk();e.preventDefault()}
+  else if(e.code==='Tab'){selectMachine((S.active+1)%S.machines.length);e.preventDefault()}
+  else if(e.code==='Escape')goMenu();
+  else if(/^Digit[1-9]$/.test(e.code)){const i=+e.code.slice(5)-1;if(i<S.machines.length)selectMachine(i)}
+  if(e.code.startsWith('Arrow')||e.code==='Space')e.preventDefault();
+});
+addEventListener('keyup',e=>keys.delete(e.code));
+addEventListener('blur',()=>{keys.clear();joyX=0;$('#knob').style.transform=''});
+['gesturestart','dblclick','contextmenu'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault()));
+
+function setupJoystick(){
+  const j=$('#joy'),knob=$('#knob');let id=null;
+  const upd=e=>{
+    const r=j.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2);
+    let v=clamp(dx/(r.width*.3),-1,1);if(Math.abs(v)<.12)v=0;
+    joyX=v;knob.style.transform='translateX('+(v*118)+'px)';
+  };
+  j.addEventListener('pointerdown',e=>{id=e.pointerId;j.setPointerCapture(id);ac();upd(e)});
+  j.addEventListener('pointermove',e=>{if(e.pointerId===id)upd(e)});
+  const end=e=>{if(e.pointerId===id){id=null;joyX=0;knob.style.transform=''}};
+  j.addEventListener('pointerup',end);j.addEventListener('pointercancel',end);
+  const press=(el,fn)=>{
+    el.addEventListener('pointerdown',e=>{e.preventDefault();el.classList.add('down');fn()});
+    const up=()=>el.classList.remove('down');
+    el.addEventListener('pointerup',up);el.addEventListener('pointerleave',up);el.addEventListener('pointercancel',up);
+  };
+  press($('#act'),tryAction);press($('#horn'),honk);
+  $('#home').addEventListener('pointerdown',e=>{e.preventDefault();goMenu()});
+  $('#snd').addEventListener('pointerdown',e=>{e.preventDefault();muted=!muted;try{localStorage.setItem('tonik_muted',muted?'1':'0')}catch(_){};$('#snd').classList.toggle('off',muted);ac();sfx.tick()});
+  $('#snd').classList.toggle('off',muted);
+  $('#again').addEventListener('pointerdown',e=>{e.preventDefault();startLevel(levelIdx)});
+  $('#next').addEventListener('pointerdown',e=>{e.preventDefault();startLevel((levelIdx+1)%LEVELS.length)});
+  $('#menu2').addEventListener('pointerdown',e=>{e.preventDefault();goMenu()});
+}
+function selectMachine(i){
+  if(!S||i===S.active)return;
+  S.active=i;ac();sfx.tick();
+}
+
+/* ---------- aktualizace ---------- */
+function workMul(m){
+  const s=S.steps[S.si];
+  if(s&&s.k==='drive'&&s.m===m.type){
+    const rear=MACH[m.type].rear,re=m.x-rear;
+    if(re>s.x0-60&&re<s.x1)return MACH[m.type].work;
+  }
+  return 1;
+}
+function update(dt){
+  S.t+=dt;
+  if(S.win)S.winT+=dt;
+  const ax=S.win?0:axis(),act=S.machines[S.active];
+  for(const m of S.machines){
+    if(m.anim)updateAnim(m,dt);
+    const driving=m===act&&!m.anim;
+    let target=driving?ax*MACH[m.type].speed*workMul(m):0;
+    if(m.park!=null){
+      const d=m.park-m.x;
+      if((driving&&Math.abs(ax)>.05)||Math.abs(d)<6||m.anim)m.park=null;
+      else target=Math.sign(d)*MACH[m.type].speed*.6;
+    }
+    m.vx+=(target-m.vx)*Math.min(1,dt*(target?7:10));
+    if(driving&&Math.abs(ax)>.05)m.dir=ax>0?1:-1;
+    if(!m.anim){
+      let nx=m.x+m.vx*dt;const lim=limitX();
+      if(nx>lim&&m.vx>0)nx=Math.max(m.x,lim);
+      m.x=clamp(nx,80,S.L.lw-60);
+    }
+    m.rot+=m.vx*m.dir*dt*.035;
+    m.drum+=dt*(m.anim?6:1.4);
+    if(m.shake>0)m.shake=Math.max(0,m.shake-dt*1.6);
+    if(m.bounce>0&&!S.win)m.bounce=Math.max(0,m.bounce-dt*40);
+    if(!m.anim)m.jx=0;
+  }
+  if(S.win){S.machines.forEach((m,i)=>{m.bounce=Math.abs(Math.sin(S.winT*6+i*1.3))*16});
+    S.lastConf-=dt;if(S.lastConf<=0&&S.winT<5){S.lastConf=.12;burst(S.cam+Math.random()*W,60,4)}}
+  // drive kroky
+  const s=S.steps[S.si];
+  if(s&&s.k==='drive'&&!S.win){
+    const m=S.machines.find(q=>q.type===s.m),rear=MACH[s.m].rear;
+    const p=clamp((m.x-rear-s.x0)/(s.x1-s.x0),0,1);
+    if(p>s.prog){s.prog=p;
+      m.fxT+=dt;if(m.fxT>.12&&Math.abs(m.vx)>20){m.fxT=0;puff(m.x-rear*m.dir,GY-10,1,s.m==='paver'?'#6f747c':'#d8d2c6',20)}
+    }
+    applyFx(s,s.prog);
+    if(s.prog>=.995)completeStep(s);
+  }
+  // díly: vyskakování
+  for(const P of S.parts){
+    if(P.delay>0){P.delay-=dt;if(P.delay<=0)startPop(P)}
+    if(P.popT>=0&&P.def.mode!=='up'&&P.def.mode!=='right'){P.popT+=dt;P.prog=Math.min(1,P.popT/(P.def.mode==='fade'?1.2:.5))}
+  }
+  // částice
+  for(const q of S.fx){q.life-=dt;q.x+=q.vx*dt;q.y+=q.vy*dt;q.vy+=q.g*dt;q.rot+=q.vr*dt}
+  S.fx=S.fx.filter(q=>q.life>0);
+  // kamera
+  const tx=clamp(act.x+act.dir*60-W/2,0,S.L.lw-W);
+  S.cam+=(tx-S.cam)*Math.min(1,dt*3.2);
+  updateHUD();
+}
+function updateAnim(m,dt){
+  const a=m.anim,s=a.step;
+  a.p=Math.min(1,a.p+dt/a.dur);
+  const t=a.p*a.dur;
+  m.x=t<.3?lerp(a.x0,s.x,ease(clamp(t/.3,0,1))):s.x;
+  if(m.type==='bulldozer')m.jx=kf(a.p,[[0,0],[.12,1],[.88,1],[1,0]])*Math.sin(a.p*TAU*3)*20;
+  applyFx(s,a.p);
+  a.fxT=(a.fxT||0)+dt;
+  if(a.fxT>.13){a.fxT=0;workFx(m,a)}
+  if(a.p>=1){
+    m.anim=null;m.jx=0;S.busy=false;
+    if(s.k==='pick')m.loaded=s.cargo;else if(s.k==='drop')m.loaded=null;
+    completeStep(s);
+  }
+}
+function workFx(m,a){
+  const d=m.dir,p=a.p;
+  if(m.type==='excavator'){const u=.5-.5*Math.cos(p*TAU*3);if(u>.8)puff(m.x+d*205,GY-6,2,'#a47340',34)}
+  else if(m.type==='bulldozer'&&p>.1&&p<.9)puff(m.x+d*150,GY-6,2,'#a47340',40);
+  else if(m.type==='mixer'&&p>.2&&p<.85)puff(m.x+d*160,GY-4,2,'#b5bac1',24);
+  else if(m.type==='loader'){
+    if(a.kind==='pick'&&p>.25&&p<.55)puff(m.x+d*190,GY-8,2,'#f2d680',30);
+    if(a.kind==='drop'&&p>.5&&p<.7){const q=loaderPose(m);puff(m.x+d*(10+Math.cos((q.arm)*D2R)*108+50)*MS,GY+(-76+Math.sin(q.arm*D2R)*108+30)*MS,2,'#f2d680',14)}}
+  else if(m.type==='dump'&&a.kind==='drop'&&p>.35&&p<.72)puff(m.x-d*140,GY-6,2,'#9a9a9a',26);
+}
+
+/* =========================================================================
+   KRESLENÍ SCÉNY
+   ========================================================================= */
+function hills(c,off,vw,base,amp,col,seed){
+  c.beginPath();c.moveTo(0,H);
+  for(let x=0;x<=vw+16;x+=16){const u=x+off;
+    c.lineTo(x,base-amp*(.5+.5*Math.sin(u/260+seed))-amp*.35*Math.sin(u/97+seed*2));}
+  c.lineTo(vw+16,H);c.closePath();c.fillStyle=col;c.fill();
+}
+function hillY(off,x,base,amp,seed){const u=x+off;return base-amp*(.5+.5*Math.sin(u/260+seed))-amp*.35*Math.sin(u/97+seed*2)}
+function drawSky(c,L,camX,vw,t){
+  const g=c.createLinearGradient(0,0,0,GY);g.addColorStop(0,L.sky[0]);g.addColorStop(1,L.sky[1]);
+  c.fillStyle=g;c.fillRect(0,0,vw,H);
+  c.fillStyle='#fff3b0';c.beginPath();c.arc(vw-170,125,54,0,TAU);c.fill();
+  c.fillStyle='rgba(255,243,176,.35)';c.beginPath();c.arc(vw-170,125,78,0,TAU);c.fill();
+  for(let i=0;i<8;i++){
+    const bx=mod(i*330+hash(i)*120-camX*.12-t*9,vw+500)-250,by=50+hash(i+9)*170,s=.7+hash(i+3)*.7;
+    c.fillStyle='rgba(255,255,255,.92)';
+    c.beginPath();c.arc(bx,by,28*s,0,TAU);c.arc(bx+32*s,by-12*s,34*s,0,TAU);c.arc(bx+70*s,by,28*s,0,TAU);c.rect(bx,by,70*s,28*s);c.fill();
+  }
+  if(L.bg==='city'){
+    c.fillStyle='#b9c9da';
+    const off=camX*.28;
+    for(let k=Math.floor(off/84)-1;k<(off+vw)/84+1;k++){
+      const h=70+hash(k+40)*190,w=54+hash(k+7)*24,x=k*84-off;
+      c.fillStyle=hash(k+11)>.5?'#b4c5d8':'#a7b9cd';c.fillRect(x,GY-30-h,w,h+40);
+      c.fillStyle='rgba(255,255,255,.5)';
+      for(let wy=GY-18-h;wy<GY-50;wy+=26)for(let wx=x+8;wx<x+w-10;wx+=18)c.fillRect(wx,wy,8,12);
+    }
+  }else hills(c,camX*.18,vw,470,70,'#b6e0bd',1.3);
+  hills(c,camX*.42,vw,535,46,'#93d38e',4.1);
+  const off=camX*.42;
+  for(let k=Math.floor(off/150)-1;k<(off+vw)/150+1;k++){
+    if(hash(k+60)<.4)continue;
+    const tx=k*150+hash(k)*70-off,ty=hillY(off,tx,535,46,4.1)+8,s=.8+hash(k+2)*.5;
+    c.fillStyle='#8a5a3a';c.fillRect(tx-4*s,ty-26*s,8*s,26*s);
+    c.fillStyle='#5cb85c';c.beginPath();c.arc(tx,ty-42*s,22*s,0,TAU);c.arc(tx-14*s,ty-30*s,16*s,0,TAU);c.arc(tx+14*s,ty-30*s,16*s,0,TAU);c.fill();
+  }
+}
+function drawGround(c,st,camX,vw,t){
+  const x0=Math.floor(camX/8)*8-24,x1=camX+vw+24;
+  // zadní stěna jam
+  for(const p of st.pits)if(p.dig>0){
+    c.fillStyle='#5b3a1f';c.fillRect(p.def.x0,GY-2,p.def.x1-p.def.x0,p.def.depth*p.dig+4);
+  }
+  c.beginPath();c.moveTo(x0,H+40);
+  for(let x=x0;x<=x1;x+=8)c.lineTo(x,terrainY(st,x));
+  c.lineTo(x1,H+40);c.closePath();
+  const g=c.createLinearGradient(0,GY,0,H);g.addColorStop(0,'#9a6633');g.addColorStop(1,'#6e4520');
+  c.fillStyle=g;c.fill();
+  c.fillStyle='rgba(255,255,255,.12)';
+  for(let k=Math.floor(x0/70);k<x1/70;k++){
+    const px=k*70+hash(k)*50,py=GY+36+hash(k+5)*110;
+    if(st.pits.some(p=>p.dig>0&&px>p.def.x0-10&&px<p.def.x1+10&&py<GY+p.def.depth*p.dig+10))continue;
+    c.beginPath();c.ellipse(px,py,8+hash(k+3)*8,5,0,0,TAU);c.fill();
+  }
+  c.save();c.lineWidth=13;c.lineJoin='round';c.strokeStyle='#62c554';c.beginPath();
+  for(let x=x0;x<=x1;x+=8){const y=terrainY(st,x)+2;x===x0?c.moveTo(x,y):c.lineTo(x,y)}c.stroke();
+  c.lineWidth=3;c.strokeStyle='#3c8f3d';c.beginPath();
+  for(let x=x0;x<=x1;x+=8){const y=terrainY(st,x)+9;x===x0?c.moveTo(x,y):c.lineTo(x,y)}c.stroke();c.restore();
+  // beton a voda v jamách
+  for(const p of st.pits){
+    const d=p.def,D=d.depth*p.dig;if(D<=0)continue;
+    const L=D*(1-p.fill);
+    if(p.fill>0){
+      const pts=[];for(let x=d.x0;x<=d.x1;x+=4){const pr=pitProfile(p,x);if(pr>L+.5)pts.push([x,pr])}
+      if(pts.length>1){
+        c.beginPath();c.moveTo(pts[0][0],GY+L);pts.forEach(q=>c.lineTo(q[0],GY+q[1]));c.lineTo(pts[pts.length-1][0],GY+L);c.closePath();
+        c.fillStyle='#aeb4bd';c.fill();
+        c.save();c.lineWidth=4;c.strokeStyle='#8d949e';c.beginPath();c.moveTo(pts[0][0],GY+L);c.lineTo(pts[pts.length-1][0],GY+L);c.stroke();c.restore();
+      }
+    }
+    if(p.water>0){
+      const Wl=lerp(L,12,p.water),top=[],bot=[];
+      for(let x=d.x0;x<=d.x1;x+=6){const pr=pitProfile(p,x);if(pr>Wl+.5){top.push([x,GY+Wl+Math.sin(x*.05+t*3)*2.2]);bot.push([x,GY+Math.min(pr,L)])}}
+      if(top.length>1){
+        c.beginPath();top.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));
+        for(let i=bot.length-1;i>=0;i--)c.lineTo(bot[i][0],bot[i][1]);c.closePath();
+        c.fillStyle='rgba(58,170,240,.92)';c.fill();
+        c.save();c.lineWidth=3;c.strokeStyle='rgba(255,255,255,.8)';c.beginPath();top.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.stroke();c.restore();
+      }
+    }
+  }
+}
+function drawShapes(c,shapes,ghost){
+  for(const s of shapes){
+    if(ghost&&s.d)continue;
+    if(s.t==='r')rr(c,s.x,GY-s.y-s.h,s.w,s.h,3);
+    else if(s.t==='p'){c.beginPath();s.pts.forEach((q,i)=>i?c.lineTo(q[0],GY-q[1]):c.moveTo(q[0],GY-q[1]));c.closePath()}
+    else{c.beginPath();c.arc(s.x,GY-s.y,s.r,0,TAU)}
+    if(ghost){c.fillStyle='rgba(255,255,255,.2)';c.fill();c.stroke()}
+    else{c.fillStyle=s.c;c.fill();c.lineWidth=s.d?2:3.5;c.stroke()}
+  }
+}
+function drawPart(c,P,t,ghost){
+  const bb=P.bb;
+  if(ghost){
+    c.save();c.setLineDash([10,8]);c.lineWidth=3;c.strokeStyle='rgba(255,255,255,'+(.72+.22*Math.sin(t*3))+')';
+    drawShapes(c,P.def.shapes,true);c.restore();return;
+  }
+  if(P.prog<=0)return;
+  c.save();c.strokeStyle=OUT;c.lineJoin='round';
+  const mode=P.def.mode,w=bb.x1-bb.x0;
+  if(mode==='pop'){
+    const k=backOut(P.prog),cx=(bb.x0+bb.x1)/2,by=GY-bb.y0;
+    c.globalAlpha=Math.min(1,P.prog*5);c.translate(cx,by);c.scale(k,k);c.translate(-cx,-by);drawShapes(c,P.def.shapes,false);
+  }else if(mode==='fade'){c.globalAlpha=P.prog;drawShapes(c,P.def.shapes,false)}
+  else if(mode==='up'){
+    const h=(bb.y1-bb.y0+8)*P.prog;c.beginPath();c.rect(bb.x0-8,GY-bb.y0+4-h,w+16,h);c.clip();drawShapes(c,P.def.shapes,false);
+  }else{
+    c.beginPath();c.rect(bb.x0-8,GY-bb.y1-10,(w+16)*P.prog,bb.y1-bb.y0+20);c.clip();drawShapes(c,P.def.shapes,false);
+  }
+  c.restore();
+}
+function drawPile(c,p){
+  c.lineWidth=3.5;c.strokeStyle=OUT;c.lineJoin='round';
+  const k=p.kind;
+  if(k==='sand'){poly(c,[[p.x-110,GY],[p.x-64,GY-36],[p.x-10,GY-66],[p.x+44,GY-54],[p.x+110,GY]],'#f2d680');return}
+  if(k==='gravel'){
+    box(c,p.x-142,GY-190,10,190,'#6b7280',2);box(c,p.x+132,GY-190,10,190,'#6b7280',2);
+    c.save();c.lineWidth=5;c.beginPath();c.moveTo(p.x-137,GY-60);c.lineTo(p.x+137,GY-150);c.moveTo(p.x+137,GY-60);c.lineTo(p.x-137,GY-150);c.stroke();c.restore();
+    box(c,p.x-110,GY-300,220,72,'#c9ccd3',6);
+    poly(c,[[p.x-110,GY-228],[p.x+110,GY-228],[p.x+24,GY-190],[p.x-24,GY-190]],'#aab0b9');
+    box(c,p.x-22,GY-192,44,42,'#6b7280',3);
+    poly(c,[[p.x-100,GY-300],[p.x-50,GY-322],[p.x+10,GY-330],[p.x+66,GY-322],[p.x+100,GY-300]],'#9a9a9a');
+    return;
+  }
+  const cd=CARGO[k];
+  const pcs=k==='steel'?[[0,0],[0,1],[0,2],[0,3]]:[[-.55,0],[.55,0],[0,1]];
+  pcs.forEach(([u,v])=>cd.draw(c,p.x+u*cd.w*1.04,GY-cd.h*(1+v)));
+}
+function drawPad(c,x,w,t){
+  const y=GY-4,h=15;
+  const gr=c.createLinearGradient(0,GY-260,0,GY);gr.addColorStop(0,'rgba(255,210,63,0)');gr.addColorStop(1,'rgba(255,210,63,'+(.3+.12*Math.sin(t*5))+')');
+  c.fillStyle=gr;c.fillRect(x-w/2,GY-260,w,260);
+  c.save();rr(c,x-w/2,y,w,h,5);c.clip();c.fillStyle='#ffd23f';c.fillRect(x-w/2,y,w,h);c.fillStyle=OUT;
+  for(let i=-2;i<w/30+2;i++){const sx=x-w/2+i*30+mod(t*24,30);c.beginPath();c.moveTo(sx,y+h);c.lineTo(sx+15,y+h);c.lineTo(sx+15+h,y);c.lineTo(sx+h,y);c.fill()}
+  c.restore();c.lineWidth=3.5;c.strokeStyle=OUT;rr(c,x-w/2,y,w,h,5);c.stroke();
+}
+function drawFlag(c,x,col,chk){
+  c.lineWidth=4;c.strokeStyle=OUT;c.beginPath();c.moveTo(x,GY);c.lineTo(x,GY-150);c.stroke();
+  if(chk){
+    c.save();rr(c,x,GY-150,56,40,3);c.clip();c.fillStyle='#fff';c.fillRect(x,GY-150,56,40);c.fillStyle='#222';
+    for(let i=0;i<4;i++)for(let j=0;j<3;j++)if((i+j)%2===0)c.fillRect(x+i*14,GY-150+j*13.4,14,13.4);c.restore();
+    c.strokeStyle=OUT;c.lineWidth=3.5;rr(c,x,GY-150,56,40,3);c.stroke();
+  }else poly(c,[[x,GY-150],[x+58,GY-132],[x,GY-112]],col);
+}
+function drawBubble(c,x,y,type,t){
+  const b=Math.sin(t*6)*7;
+  c.save();c.translate(x,y+b);c.lineWidth=4;c.strokeStyle=OUT;
+  poly(c,[[-14,36],[14,36],[0,60]],'#ffd23f');
+  disc(c,0,0,46,'#fff');disc(c,0,0,40,'#fffbe6');
+  c.drawImage(ICON[type],-40,-30,82,60);c.restore();
+}
+function drawZone(c,st,camX,vw,t,front){
+  const s=st.steps[st.si];if(!s||st.win)return;
+  if(s.k==='drive'){
+    if(!front){
+      c.save();c.lineWidth=7;c.strokeStyle='rgba(255,210,63,.95)';c.setLineDash([22,16]);c.lineDashOffset=-t*40;
+      c.beginPath();c.moveTo(s.x0,GY+9);c.lineTo(s.x1,GY+9);c.stroke();c.restore();
+      drawFlag(c,s.x0,'#3bb54a');drawFlag(c,s.x1,null,true);
+    }else drawBubble(c,s.x0+30,GY-230,s.m,t);
+    return;
+  }
+  if(!front)drawPad(c,s.x,s.w,t);else drawBubble(c,s.x,GY-250,s.m,t);
+}
+function drawFx(c,st){
+  for(const q of st.fx){
+    const a=clamp(q.life/q.max,0,1);
+    if(q.type==='dust'){c.globalAlpha=a*.75;c.fillStyle=q.col;c.beginPath();c.arc(q.x,q.y,q.size*(1.5-a*.5),0,TAU);c.fill()}
+    else{
+      c.save();c.globalAlpha=Math.min(1,a*2.5);c.translate(q.x,q.y);c.rotate(q.rot);c.fillStyle=q.col;c.strokeStyle=OUT;c.lineWidth=1.5;
+      if(q.type==='star'){const sc=q.size/10*1.3;polyPath(c,starPts(8*sc,3.6*sc));c.fill();c.stroke()}
+      else{c.fillRect(-q.size/2,-q.size/4,q.size,q.size/2)}
+      c.restore();
+    }
+    c.globalAlpha=1;
+  }
+}
+function drawScene(c,st,camX,vw,o){
+  o=o||{};
+  drawSky(c,st.L,camX,vw,st.t);
+  c.save();c.translate(-camX,0);
+  drawGround(c,st,camX,vw,st.t);
+  // obrysy jam (kam kopat)
+  if(!o.thumb)for(const p of st.pits)if(p.dig<1&&!st.win){
+    const d=p.def,sl=Math.min(46,(d.x1-d.x0)/3);
+    c.save();c.setLineDash([10,8]);c.lineWidth=3;c.strokeStyle='rgba(255,255,255,.85)';
+    c.beginPath();c.moveTo(d.x0,GY);c.lineTo(d.x0+sl,GY+d.depth);c.lineTo(d.x1-sl,GY+d.depth);c.lineTo(d.x1,GY);c.stroke();c.restore();
+  }
+  if(!o.thumb)for(const p of st.piles)drawPile(c,p);
+  // duchové dílů (co se bude stavět) a hotové díly
+  if(!o.thumb)for(const P of st.parts)if(!P.def.fin&&P.prog<1)drawPart(c,P,st.t,true);
+  for(const P of st.parts)if(!(P.def.fin&&P.prog<=0))drawPart(c,P,st.t,false);
+  if(st.win&&st.L.finale)st.L.finale(c,st);
+  if(!o.thumb){
+    drawZone(c,st,camX,vw,st.t,false);
+    const order=st.machines.map((m,i)=>[m,i]).sort((a,b)=>(a[1]===st.active)-(b[1]===st.active));
+    for(const [m] of order)drawMachine(c,m);
+    // proud štěrku z násypky
+    for(const m of st.machines)if(m.type==='dump'&&m.anim&&m.anim.kind==='pick'&&m.anim.p>.1&&m.anim.p<.88){
+      c.fillStyle='#9a9a9a';c.fillRect(m.anim.step.src.x-7,GY-150,14,78);
+      for(let i=0;i<4;i++){const yy=GY-150+mod(st.t*300+i*20,78);c.fillRect(m.anim.step.src.x-12+i*6,yy,5,5)}
+    }
+    drawZone(c,st,camX,vw,st.t,true);
+  }
+  drawFx(c,st);
+  c.restore();
+  if(!o.thumb&&!st.win)edgeArrow(c,st);
+}
+function edgeArrow(c,st){
+  const s=st.steps[st.si];if(!s)return;
+  const sx=zoneX(s)-st.cam;
+  const side=sx<-50?-1:sx>W+50?1:0;if(!side)return;
+  const x=side<0?66:W-66,y=330,b=Math.sin(st.t*6)*8;
+  c.save();c.translate(x+side*b,y);c.lineWidth=4;c.strokeStyle=OUT;
+  poly(c,[[side*66,0],[side*42,-22],[side*42,22]],'#ffd23f');
+  disc(c,0,0,46,'#fff');disc(c,0,0,40,'#fffbe6');c.drawImage(ICON[s.m],-40,-30,82,60);c.restore();
+}
+
+/* ---------- HUD (DOM) ---------- */
+function buildHUD(){
+  const prog=$('#prog');prog.innerHTML='';S.segs=[];
+  for(let i=0;i<S.nph;i++){
+    const seg=document.createElement('div');seg.className='seg';seg.innerHTML='<div class="f"></div>';
+    const st=document.createElement('div');st.className='star';st.innerHTML=STAR_SVG;
+    prog.append(seg,st);S.segs.push({f:seg.firstChild,star:st,w:-1,on:false});
+  }
+  const tray=$('#tray');tray.innerHTML='';S.btns=[];
+  S.machines.forEach((m,i)=>{
+    const b=document.createElement('button');b.className='mach';
+    const img=document.createElement('img');img.src=ICON[m.type].toDataURL();img.alt=MACH[m.type].n;
+    const n=document.createElement('b');n.textContent=i+1;
+    b.append(img,n);
+    b.addEventListener('pointerdown',e=>{e.preventDefault();selectMachine(i)});
+    tray.append(b);S.btns.push(b);
+  });
+}
+function updateHUD(){
+  const s=S.steps[S.si];
+  S.segs.forEach((g,ph)=>{
+    let tot=0,dn=0;
+    S.steps.forEach((q,i)=>{if(q.ph===ph){tot++;dn+=i<S.si?1:i===S.si?(q.p||0):0}});
+    const w=Math.round(dn/tot*100),on=dn>=tot-1e-6;
+    if(w!==g.w){g.w=w;g.f.style.width=w+'%'}
+    if(on!==g.on){g.on=on;g.star.classList.toggle('on',on)}
+  });
+  const key=S.active+'|'+(s?s.m:'');
+  if(key!==S.trayKey){
+    S.trayKey=key;
+    S.btns.forEach((b,i)=>{
+      b.classList.toggle('active',i===S.active);
+      b.classList.toggle('hint',!!s&&S.machines[i].type===s.m&&i!==S.active);
+    });
+  }
+  const m=S.machines[S.active];
+  const ready=!!s&&!S.busy&&!S.win&&s.k!=='drive'&&m.type===s.m&&Math.abs(m.x-s.x)<=s.w/2;
+  $('#act').classList.toggle('ready',ready);
+}
+
+/* ---------- menu, start, konec ---------- */
+function buildGear(){
+  const pts=[];const n=8;
+  for(let i=0;i<n*2;i++){
+    const a0=(i/(n*2))*TAU,a1=((i+1)/(n*2))*TAU,r=i%2?8.2:11;
+    pts.push([Math.cos(a0)*r,Math.sin(a0)*r],[Math.cos(a1-.06)*r,Math.sin(a1-.06)*r]);
+  }
+  $('#gear').innerHTML='<path d="'+pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(2)+' '+p[1].toFixed(2)).join('')+'Z" fill="#fff" stroke="#2b2118" stroke-width="1.3" stroke-linejoin="round"/><circle r="4" fill="#3bb54a" stroke="#2b2118" stroke-width="1.3"/>';
+}
+function buildMenu(){
+  const grid=$('#grid');grid.innerHTML='';
+  const icons=$('#icons');icons.innerHTML='';
+  Object.keys(MACH).forEach(t=>{const im=document.createElement('img');im.src=ICON[t].toDataURL();icons.append(im)});
+  LEVELS.forEach((L,i)=>{
+    const card=document.createElement('div');card.className='card';card.dataset.id=L.id;
+    const cv=document.createElement('canvas');cv.width=520;cv.height=300;
+    const st=makeState(L,true);
+    const c=cv.getContext('2d');
+    const z=L.thumb.zoom,k=cv.width/W*z;
+    c.save();c.translate(0,cv.height);c.scale(k,k);c.translate(0,-H);
+    drawScene(c,st,L.thumb.cx-W/(2*z),W/z+60,{thumb:true});
+    c.restore();
+    card.append(cv);
+    const name=document.createElement('div');name.textContent=L.name;card.append(name);
+    const ok=document.createElement('div');ok.className='ok';ok.innerHTML='<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    card.append(ok);
+    card.addEventListener('pointerup',()=>{ac();startLevel(i)});
+    grid.append(card);
+  });
+  refreshMenu();
+}
+function refreshMenu(){document.querySelectorAll('.card').forEach(c=>c.classList.toggle('done',done.has(c.dataset.id)))}
+function startLevel(i){
+  levelIdx=i;S=makeState(LEVELS[i]);running=true;
+  keys.clear();joyX=0;$('#knob').style.transform='';
+  $('#menu').classList.add('hidden');$('#win').classList.add('hidden');$('#hud').classList.remove('hidden');
+  buildHUD();updateHUD();
+}
+function goMenu(){
+  running=false;$('#hud').classList.add('hidden');$('#win').classList.add('hidden');$('#menu').classList.remove('hidden');refreshMenu();
+}
+function showWin(){
+  $('#win .stars').innerHTML='<div class="st">'+STAR_SVG+'</div><div class="st">'+STAR_SVG+'</div><div class="st">'+STAR_SVG+'</div>';
+  $('#win').classList.remove('hidden');
+}
+
+/* ---------- plátno, měřítko, hlavní smyčka ---------- */
+const cv=$('#c'),ctx=cv.getContext('2d');
+function resize(){
+  const iw=innerWidth,ih=innerHeight,s=Math.min(iw/W,ih/H);
+  $('#stage').style.transform='translate('+((iw-W*s)/2)+'px,'+((ih-H*s)/2)+'px) scale('+s+')';
+  const k=clamp(s*(devicePixelRatio||1),.6,2);
+  cv.width=Math.round(W*k);cv.height=Math.round(H*k);
+}
+addEventListener('resize',resize);addEventListener('orientationchange',resize);
+let last=performance.now();
+function frame(now){
+  const dt=Math.min(.05,(now-last)/1000);last=now;
+  if(running&&S){
+    update(dt);
+    const k=cv.width/W;ctx.setTransform(k,0,0,k,0,0);
+    drawScene(ctx,S,S.cam,W);
+  }
+  requestAnimationFrame(frame);
+}
+function boot(){
+  makeIcons();buildGear();setupJoystick();resize();buildMenu();
+  requestAnimationFrame(t=>{last=t;frame(t)});
+}
+/* pro automatické testy */
+window.TG={get S(){return S},LEVELS,start:startLevel,act:tryAction,step:update,select:selectMachine,get running(){return running}};
+boot();
+</script>
+</body>
+</html>
